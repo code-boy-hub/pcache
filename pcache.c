@@ -32,31 +32,6 @@ int bWillNotNeed = 0;
 int bWillNeed = 0;
 int bShowMemInfo = 0;
 
-//void
-//ConvertToHumanReadable (long iSize, char buf[])
-//{
-//  const char *suffixes[] =
-//    { "B", "K", "M", "G", "T", "P", "E" };
-//  int s = 0;
-//
-//  double iCount = iSize;
-//
-//  while (iCount >= 1024 && s < 7)
-//    {
-//      ++s;
-//      iCount /= 1024;
-//    }
-//
-//  if (0.0 == iCount - floor (iCount))
-//    {
-//      sprintf (buf, "%d%s", (int) iCount, suffixes[s]);
-//    }
-//  else
-//    {
-//      sprintf (buf, "%.1f%s", iCount, suffixes[s]);
-//    }
-//}
-
 void
 OnScreen (const char *fmt, ...)
 {
@@ -440,28 +415,3 @@ main (int argc, char *argv[])
   
   return 0;
 }
-//
-//int
-//aaTESTmain ()
-//{
-//  iToDoListHead = 0;
-//  iToDoListTail = 0;
-//  printf ("iToDoListHead=%d iToDoListTail=%d\n", iToDoListHead, iToDoListTail);
-//  AppendToDoList ("Look i am first");
-//  OnScreen ("iToDoListHead=%d iToDoListTail=%d\n", iToDoListHead,
-//	    iToDoListTail);
-//  AppendToDoList ("I am second");
-//  OnScreen ("iToDoListHead=%d iToDoListTail=%d\n", iToDoListHead,
-//	    iToDoListTail);
-//  OnScreen ("First:%s", GetHead ());
-//  OnScreen ("iToDoListHead=%d iToDoListTail=%d\n", iToDoListHead,
-//	    iToDoListTail);
-//  OnScreen ("First:%s", GetHead ());
-//  OnScreen ("iToDoListHead=%d iToDoListTail=%d\n", iToDoListHead,
-//	    iToDoListTail);
-//  OnScreen ("First:%s", GetHead ());
-//  OnScreen ("iToDoListHead=%d iToDoListTail=%d\n", iToDoListHead,
-//	    iToDoListTail);
-//  return 0;
-//
-//}
