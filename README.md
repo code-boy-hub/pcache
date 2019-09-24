@@ -10,10 +10,15 @@ Usage:
 pcache [options] File/Directory
 
 Options:
+
 -c count the pages cached in memory. Page size is 4KBytes.
+
 -v verbose output
+
 -d advise kernel attempts to free cached pages associated with the specified region. Dirty pages that have not been synchronized may not work.
+
 -n advise kernel the specified data will be accessed in the near future.The amount of data read may be decreased by the kernel depending on virtual memory load.
+
 -h print this info.
 
 Example:
