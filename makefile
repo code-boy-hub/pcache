@@ -1,5 +1,5 @@
 all: pcache.c
-	cc -o pcache -O3 pcache.c
+	cc -o pcache -O3 -Os pcache.c
 	strip pcache
 
 clean:
