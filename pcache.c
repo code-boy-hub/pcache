@@ -31,6 +31,31 @@ int bCheckCachedPages = 0;
 int bWillNotNeed = 0;
 int bWillNeed = 0;
 int bShowMemInfo = 0;
+int bProcessSubDir = 0;
+//void
+//ConvertToHumanReadable (long iSize, char buf[])
+//{
+//  const char *suffixes[] =
+//    { "B", "K", "M", "G", "T", "P", "E" };
+//  int s = 0;
+//
+//  double iCount = iSize;
+//
+//  while (iCount >= 1024 && s < 7)
+//    {
+//      ++s;
+//      iCount /= 1024;
+//    }
+//
+//  if (0.0 == iCount - floor (iCount))
+//    {
+//      sprintf (buf, "%d%s", (int) iCount, suffixes[s]);
+//    }
+//  else
+//    {
+//      sprintf (buf, "%.1f%s", iCount, suffixes[s]);
+//    }
+//}
 
 void
 OnScreen (const char *fmt, ...)
@@ -49,29 +74,28 @@ ShowBanner (const char *pName)
 {
   const char *sBanner =
       "\nPageCached V1.0\n\n"
-	  "PageCached is used to count and analyze pages cached in the memory by the kernel of common files.\n"
-	  "It can ADVISE the kernel to release/cache the specified file/directory.  Linux kernel 2.6 is required.\n"
-	  "If a directory specified, all files in this directory will be processed (including subdirectories).\n"
-	  "Hide files (start with .) will not processed.\n\n"
-	  "Usage:\n"
-	  "%s [options] File/Directory\n\n"
-	  "Options:\n"
-	  "-c count the pages cached in memory. Page size is 4KBytes.\n"
-	  "-v verbose output\n"
-	  "-d advise kernel attempts to free cached pages associated with the specified region. Dirty pages "
-	  "that have not been synchronized may not work. \n"
-	  "-n advise kernel the specified data will be accessed in the near future.The amount of data read may be "
-	  "decreased by the kernel depending on virtual memory load. \n"
-	  "-h print this info.\n\n"
+      "PageCached can analyze files cached in the memory by the kernel . Linux kernel 2.6 is required.\n"
+      "Usage:\n"
+      "%s [options] File/Directory\n\n"
+      "Options:\n"
+      "-c count the pages cached in memory. Page size is 4KBytes.\n"
+      "-v verbose output\n"
+      "-d advise kernel attempts to free cached pages associated with the specified region. Dirty pages "
+      "that have not been synchronized may not work. \n"
+      "-n advise kernel the specified data will be accessed in the near future.The amount of data read may be "
+      "decreased by the kernel depending on virtual memory load. \n"
+      "-s process subdirectories \n"
+      "-h print this info.\n"
+      "Hide files (start with .) will not processed.\n\n"
       "Example:\n"
-      "Analyze the size of all files in the current directory (including subdirectories) that are cached into memory.\n\n"
+      "Analyze all files in the current directory that are cached into memory.\n\n"
       "\t%s -c . \n\n"
-      "Analyze the size of all files in the /home/data/history (including subdirectories) that are cached into memory.And advise the kernel to release the cache of these files.\n\n"
-      "\t%s -cd /home/data/history \n\n"
-      "Advise the kernel do free the cache of all files in the /home/data (including subdirectories).\n\n"
+      "Analyze files in the /home/data/history (and it's subdirectories) that are cached into memory.\n\n"
+      "\t%s -cs /home/data/histories \n\n"
+      "Advise the kernel do free the cache of files in the /home/data .\n\n"
       "\t%s -d /home/data \n\n"
-      "Advise the kernel to cache all files in the /home/data (including subdirectories) into memory. This operation may cause HIGH system I/O!\n\n"
-      "\t%s -n /home/data \n\n"        ;
+      "Advise the kernel to cache files in the /home/data into memory. This operation may cause HIGH system I/O!\n\n"
+      "\t%s -n /home/data \n\n";
   printf (sBanner, pName, pName, pName, pName, pName);
 
 }
@@ -83,7 +107,8 @@ ShowStaticInfo ()
   printf ("Scaned %lu Directories, %lu Files(%lu Failed). ", iDirCnts,
 	  iFileCnts, iFileFailed);
   if (bCheckCachedPages)
-    printf ("FilePages:%lu, CachedPages:%lu(%.3f GB)", iFilePages, iCachedPages,((double)iCachedPages*4.0)/1024/1024);
+    printf ("FilePages:%lu, CachedPages:%lu(%.3f GB)", iFilePages, iCachedPages,
+	    ((double) iCachedPages * 4.0) / 1024 / 1024);
 
   printf ("\n");
 }
@@ -119,30 +144,30 @@ ShowErrorInfo (const char *sFilename, int LineNumber)
 int
 GetCachedPages (int fd, void *ptr, size_t st_size)
 {
-  //printf("GetCachedPages\n");
+
   unsigned long pages = 0, Cached = 0;
   static unsigned char vec[0x4000000];
   int iRet = mincore (ptr, st_size, vec);
   if (iRet == FAIL)
     {
       OnScreen ("mincore error:%s", strerror (errno));
-      //close(fd);
+
       return FAIL;
     }
-  /* This also avoids any overflows on PAGE_CACHE_ALIGN */
+
   pages = st_size >> PAGE_SHIFT;
   pages += (st_size & ~PAGE_MASK) != 0;
-  if(pages > 0x4000000) 
-  	{
-  		OnScreen ("File is too large to analyse!\n");
+  if (pages > 0x4000000)
+    {
+      OnScreen ("File is too large to analyse!\n");
       return FAIL;
-  	}
+    }
   for (unsigned long i = 0; i < pages; i++)
     if ((vec[i] & 1) == 1)
       Cached++;
   iCachedPages += Cached;
   iFilePages += pages;
-  OnScreen ("Cached=%lu", Cached);
+  OnScreen ("Cached=%lu Pages", Cached);
   return SUCCESS;
 }
 
@@ -201,12 +226,12 @@ DealOneFile (const char *sFullPath)
       iRet = FAIL;
     }
 
-  //printf("iRed=%d , bCheckCachedPages=%d\n",iRet,bCheckCachedPages);
+
   if (iRet == SUCCESS && bCheckCachedPages)
     iRet = GetCachedPages (fd, ptr, statbuf.st_size);
   OnScreen ("\n");
   munmap (ptr, statbuf.st_size);
-  //printf("err:%s\n",strerror(errno));
+
   //fdatasync(fd);
   if (iRet == SUCCESS && (bWillNotNeed || bWillNeed))
     DoDropCache (fd, statbuf.st_size,
@@ -240,19 +265,20 @@ ProcessSingleDir (const char *sPath)
 	}
       char sFullPath[2048];
 
-      char *p = (char*) memccpy (sFullPath, sPath, 0, sizeof(sFullPath) );
-      if(p)
+      char *p = (char*) memccpy (sFullPath, sPath, 0, sizeof(sFullPath));
+      if (p)
 	*(p - 1) = '/';
-      p=memccpy (p, pFile->d_name, 0, sizeof(sFullPath)  - (p - sFullPath));
+      p = memccpy (p, pFile->d_name, 0, sizeof(sFullPath) - (p - sFullPath));
 
-      if ( !p || p-sFullPath >=sizeof(sFullPath) )
+      if (!p || p - sFullPath >= sizeof(sFullPath))
 	{
-	  printf ("Process [%s/%s] Failed!  Path is too long!\n", sPath,pFile->d_name );
+	  printf ("Process [%s/%s] Failed!  Path is too long!\n", sPath,
+		  pFile->d_name);
 	  continue;
 	}
 
       switch (pFile->d_type)
-	{
+      {
 	case DT_REG:
 	  if (DealOneFile (sFullPath) == FAIL)
 	    iFileFailed++;
@@ -262,14 +288,15 @@ ProcessSingleDir (const char *sPath)
 	case DT_DIR:
 	  {
 	    OnScreen ("\n");
-	    AppendToDoList (sFullPath);
+	    if (bProcessSubDir)
+	      AppendToDoList (sFullPath);
 	    break;
 	  }
 	  break;
 	default:
 	  break;
 
-	}
+      }
     };
   closedir (ptrDir);
   return SUCCESS;
@@ -306,8 +333,9 @@ ShowMemInfo ()
   char buffer[5][64];
   for (int i = 0; i < 5; i++)
     {
-      char *p=fgets (buffer[i], sizeof(buffer[0]), fp);
-      if(!p) break;
+      char *p = fgets (buffer[i], sizeof(buffer[0]), fp);
+      if (!p)
+	break;
       printf ("%s", buffer[i]);
     }
 
@@ -320,10 +348,10 @@ ParseOpt (int argc, char *argv[])
 {
   int opt;
   int bErrorOpt = 0;
-  while ((opt = getopt (argc, argv, "hvcdnm")) != -1)
+  while ((opt = getopt (argc, argv, "hvcdnms")) != -1)
     {
       switch (opt)
-	{
+      {
 	case 'h':
 	  bErrorOpt = 1;
 	  break;
@@ -342,7 +370,10 @@ ParseOpt (int argc, char *argv[])
 	case 'm':
 	  bShowMemInfo = 1;
 	  break;
-	}
+	case 's':
+	  bProcessSubDir = 1;
+	  break;
+      }
     }
 
   bErrorOpt += CheckOpt (argv);
@@ -412,6 +443,6 @@ main (int argc, char *argv[])
   if (bShowMemInfo)
     ShowMemInfo ();
   printf ("\n");
-  
+
   return 0;
 }
