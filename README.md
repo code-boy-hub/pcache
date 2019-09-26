@@ -1,5 +1,4 @@
-# pcache
-PageCached
+# PageCached
 
 PageCached is used to count and analyze pages cached in the memory by the kernel of common files.
 It can ADVISE the kernel to release/cache the specified file/directory.  Linux kernel 2.6 is required.
